@@ -515,8 +515,8 @@ alter table gemini_cache disable row level security;
                 }`}
               ></div>
               <span className="font-semibold text-[#374151]">
-                SUPABASE URL: ${cleanEnvVar(process.env.SUPABASE_URL || "");}
-                SUPABASE KEY: ${cleanEnvVar(process.env.SUPABASE_KEY || "");}
+                SUPABASE URL: ${cleanEnvVar(process.env.SUPABASE_URL || "")}
+                SUPABASE KEY: ${cleanEnvVar(process.env.SUPABASE_KEY || "")}
               </span>
             </div>
           </div>
