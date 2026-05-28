@@ -1,10 +1,6 @@
 import { createClient,SupabaseClient  } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import { Article, Comment } from "./types";
-import dotenv from "dotenv";
-
-// Load environment variables immediately to prevent hoisted ESM import issues
-dotenv.config();
 
 // Helper to remove any literal leading/trailing quotes from loaded variable strings
 const cleanEnvVar = (val: string): string => {
