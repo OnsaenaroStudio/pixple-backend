@@ -1,5 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Article, Comment } from "./types";
+import { createClient,SupabaseClient  } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
+import { Article, Comment } from "./types";
+import dotenv from "dotenv";
+
+// Load environment variables immediately to prevent hoisted ESM import issues
+dotenv.config();
 
 // Helper to remove any literal leading/trailing quotes from loaded variable strings
 const cleanEnvVar = (val: string): string => {
@@ -11,13 +16,16 @@ const cleanEnvVar = (val: string): string => {
   return clean.trim();
 };
 
-// Read from process.env (Next.js handles env vars automatically)
+// Read from process.env on server, but allow dynamic override/fallback
 const supabaseUrl = cleanEnvVar(process.env.SUPABASE_URL || "");
 const supabaseKey = cleanEnvVar(process.env.SUPABASE_KEY || "");
 
+console.log(supabaseUrl);
+console.log(supabaseKey);
+
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseKey && supabaseUrl !== "MY_SUPABASE_URL" && supabaseUrl !== "");
 
-export let supabase: ReturnType<typeof createClient> | null = null;
+export let supabase: SupabaseClient<Database> | null = null;
 
 if (isSupabaseConfigured) {
   try {
@@ -68,7 +76,7 @@ class SandboxDatabase {
     }
   ];
 
-  cache: Record<string, unknown> = {};
+  cache: Record<string, any> = {};
 
   async getArticles(page: number = 1, limit: number = 10): Promise<{ page: number; articles: Article[] }> {
     const sorted = [...this.articles].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -123,11 +131,11 @@ class SandboxDatabase {
     return false;
   }
 
-  async getCachedResult(hash: string): Promise<unknown | null> {
+  async getCachedResult(hash: string): Promise<any | null> {
     return this.cache[hash] || null;
   }
 
-  async setCachedResult(hash: string, result: unknown): Promise<void> {
+  async setCachedResult(hash: string, result: any): Promise<void> {
     this.cache[hash] = result;
   }
 }
@@ -151,20 +159,19 @@ export async function dbGetArticles(page: number): Promise<{ page: number; artic
       if (error) throw error;
 
       // Map Supabase article_hash_tag (might be JSON string or array already)
-      const mappedArticles = (data || []).map((art: Record<string, unknown>) => ({
+      const mappedArticles = (data || []).map((art: any) => ({
         ...art,
         article_hash_tag: Array.isArray(art.article_hash_tag)
           ? art.article_hash_tag
           : typeof art.article_hash_tag === "string"
-          ? JSON.parse(art.article_hash_tag as string)
+          ? JSON.parse(art.article_hash_tag)
           : art.article_hash_tag || []
-      })) as Article[];
+      }));
 
       return { page, articles: mappedArticles };
-    } catch (err) {
-      const error = err as Error;
-      console.error("Supabase Error (dbGetArticles):", error.message);
-      throw new Error(`Supabase Query Failed for 'articles': ${error.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
+    } catch (err: any) {
+      console.error("Supabase Error (dbGetArticles):", err.message);
+      throw new Error(`Supabase Query Failed for 'articles': ${err.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
     }
   }
   return sandboxDb.getArticles(page);
@@ -175,20 +182,19 @@ export async function dbCreateArticle(title: string, content: string, hashtags: 
     try {
       const { data, error } = await supabase
         .from("articles")
-        .insert({
+        .insert([{
           article_title: title,
           article_content: content,
           article_hash_tag: hashtags
-        })
+        }])
         .select("id")
         .single();
 
       if (error) throw error;
       return data.id;
-    } catch (err) {
-      const error = err as Error;
-      console.error("Supabase Error (dbCreateArticle):", error.message);
-      throw new Error(`Supabase Insert Failed for 'articles': ${error.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
+    } catch (err: any) {
+      console.error("Supabase Error (dbCreateArticle):", err.message);
+      throw new Error(`Supabase Insert Failed for 'articles': ${err.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
     }
   }
   return sandboxDb.createArticle(title, content, hashtags);
@@ -205,10 +211,9 @@ export async function dbGetComments(articleId: number): Promise<Comment[]> {
 
       if (error) throw error;
       return data || [];
-    } catch (err) {
-      const error = err as Error;
-      console.error("Supabase Error (dbGetComments):", error.message);
-      throw new Error(`Supabase Query Failed for 'comments': ${error.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
+    } catch (err: any) {
+      console.error("Supabase Error (dbGetComments):", err.message);
+      throw new Error(`Supabase Query Failed for 'comments': ${err.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
     }
   }
   return sandboxDb.getComments(articleId);
@@ -231,10 +236,9 @@ export async function dbCreateComment(articleId: number, userName: string, userI
 
       if (error) throw error;
       return data;
-    } catch (err) {
-      const error = err as Error;
-      console.error("Supabase Error (dbCreateComment):", error.message);
-      throw new Error(`Supabase Insert Failed for 'comments': ${error.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
+    } catch (err: any) {
+      console.error("Supabase Error (dbCreateComment):", err.message);
+      throw new Error(`Supabase Insert Failed for 'comments': ${err.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
     }
   }
   return sandboxDb.createComment(articleId, userName, userId, content);
@@ -259,16 +263,15 @@ export async function dbLikeComment(commentId: number): Promise<boolean> {
 
       if (updateErr) throw updateErr;
       return true;
-    } catch (err) {
-      const error = err as Error;
-      console.error("Supabase Error (dbLikeComment):", error.message);
-      throw new Error(`Supabase Update Failed for 'comments' likes: ${error.message}.`);
+    } catch (err: any) {
+      console.error("Supabase Error (dbLikeComment):", err.message);
+      throw new Error(`Supabase Update Failed for 'comments' likes: ${err.message}.`);
     }
   }
   return sandboxDb.likeComment(commentId);
 }
 
-export async function dbGetCachedResult(imageHash: string): Promise<{ allergens: number[] } | null> {
+export async function dbGetCachedResult(imageHash: string): Promise<any | null> {
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -279,16 +282,15 @@ export async function dbGetCachedResult(imageHash: string): Promise<{ allergens:
 
       if (error) throw error;
       return data ? data.result : null;
-    } catch (err) {
-      const error = err as Error;
-      console.error("Supabase Error (dbGetCachedResult):", error.message);
-      throw new Error(`Supabase Query Failed for 'gemini_cache': ${error.message}. Please make sure 'gemini_cache' table is provisioned!`);
+    } catch (err: any) {
+      console.error("Supabase Error (dbGetCachedResult):", err.message);
+      throw new Error(`Supabase Query Failed for 'gemini_cache': ${err.message}. Please make sure 'gemini_cache' table is provisioned!`);
     }
   }
-  return sandboxDb.getCachedResult(imageHash) as Promise<{ allergens: number[] } | null>;
+  return sandboxDb.getCachedResult(imageHash);
 }
 
-export async function dbSetCachedResult(imageHash: string, result: { allergens: number[] }): Promise<void> {
+export async function dbSetCachedResult(imageHash: string, result: any): Promise<void> {
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase
@@ -299,10 +301,9 @@ export async function dbSetCachedResult(imageHash: string, result: { allergens: 
         }, { onConflict: "image_hash" });
 
       if (error) throw error;
-    } catch (err) {
-      const error = err as Error;
-      console.error("Supabase Error (dbSetCachedResult):", error.message);
-      throw new Error(`Supabase Upsert Failed for 'gemini_cache': ${error.message}.`);
+    } catch (err: any) {
+      console.error("Supabase Error (dbSetCachedResult):", err.message);
+      throw new Error(`Supabase Upsert Failed for 'gemini_cache': ${err.message}.`);
     }
   } else {
     sandboxDb.setCachedResult(imageHash, result);
