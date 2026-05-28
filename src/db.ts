@@ -182,11 +182,11 @@ export async function dbCreateArticle(title: string, content: string, hashtags: 
     try {
       const { data, error } = await supabase
         .from("articles")
-        .insert({
+        .insert([{
           article_title: title,
           article_content: content,
           article_hash_tag: hashtags
-        })
+        }])
         .select("id")
         .single();
 
