@@ -1,11 +1,11 @@
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use vercel_runtime::{run, service_fn, Body, Error, Request, Response, StatusCode};
+use vercel_runtime::{run, Body, Error, Request, Response, StatusCode};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    run(service_fn(handler)).await
+    run(handler).await
 }
 
 #[derive(Deserialize)]
@@ -24,9 +24,8 @@ fn error_response(msg: &str) -> Result<Response<Body>, Error> {
         .body(Body::Text(body.to_string()))?)
 }
 
-async fn handler(req: Request) -> Result<Response<Body>, Error> {
-    let body_bytes = req.body();
-    let body_str = match body_bytes {
+pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
+    let body_str = match req.body() {
         Body::Text(s) => s.clone(),
         Body::Binary(b) => String::from_utf8_lossy(b).to_string(),
         Body::Empty => return error_response("Empty body"),
@@ -44,7 +43,6 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
     let supabase_url = std::env::var("SUPABASE_URL").unwrap_or_default();
     let supabase_key = std::env::var("SUPABASE_ANON_KEY").unwrap_or_default();
 
-    // hash_tag 정규화: null이면 빈 배열
     let hash_tag = if parsed.article_hash_tag.is_null() {
         json!([])
     } else {
@@ -70,13 +68,7 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
         .await
         .unwrap_or(json!([]));
 
-    let article_id = insert_res
-        .as_array()
-        .and_then(|a| a.first())
-        .and_then(|v| v.get("id"))
-        .and_then(|v| v.as_i64());
-
-    match article_id {
+    match insert_res.as_array().and_then(|a| a.first()).and_then(|v| v.get("id")).and_then(|v| v.as_i64()) {
         Some(id) => {
             let resp = json!({ "is_suc": true, "article_id": id });
             Ok(Response::builder()

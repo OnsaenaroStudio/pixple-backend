@@ -1,45 +1,39 @@
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use vercel_runtime::{run, service_fn, Body, Error, Request, Response, StatusCode};
+use vercel_runtime::{run, Body, Error, Request, Response, StatusCode};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    run(service_fn(handler)).await
+    run(handler).await
 }
 
 #[derive(Deserialize)]
 struct RequestBody {
     img: String,
+    #[allow(dead_code)]
     prompt: String,
 }
 
-#[derive(Serialize)]
-struct ApiResponse {
-    code: i32,
-    data: Value,
-}
-
-fn error_response(code: i32, msg: &str) -> Result<Response<Body>, Error> {
-    let body = json!({ "code": code, "data": [], "error": msg });
+fn error_response(msg: &str) -> Result<Response<Body>, Error> {
+    let body = json!({ "code": 400, "data": [], "error": msg });
     Ok(Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "application/json")
         .body(Body::Text(body.to_string()))?)
 }
 
-async fn handler(req: Request) -> Result<Response<Body>, Error> {
-    let body_bytes = req.body();
-    let body_str = match body_bytes {
+pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
+    let body_str = match req.body() {
         Body::Text(s) => s.clone(),
         Body::Binary(b) => String::from_utf8_lossy(b).to_string(),
-        Body::Empty => return error_response(400, "Empty body"),
+        Body::Empty => return error_response("Empty body"),
     };
 
     let parsed: RequestBody = match serde_json::from_str(&body_str) {
         Ok(v) => v,
-        Err(_) => return error_response(400, "Invalid JSON body"),
+        Err(_) => return error_response("Invalid JSON body"),
     };
 
     let supabase_url = std::env::var("SUPABASE_URL").unwrap_or_default();
@@ -105,6 +99,12 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
         20=extract or product derived from allergen 1-19. \
         If none detected, return {\"allergens\": []}.";
 
+    // base64 prefix 제거
+    let raw_b64 = parsed.img
+        .split_once("base64,")
+        .map(|(_, b)| b)
+        .unwrap_or(&parsed.img);
+
     let gemini_body = json!({
         "system_instruction": {
             "parts": [{ "text": system_prompt }]
@@ -114,14 +114,10 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
                 {
                     "inline_data": {
                         "mime_type": "image/jpeg",
-                        "data": parsed.img.trim_start_matches("data:image/jpeg;base64,")
-                                          .trim_start_matches("data:image/png;base64,")
-                                          .trim_start_matches("data:image/webp;base64,")
+                        "data": raw_b64
                     }
                 },
-                {
-                    "text": "Identify all allergens in this food image."
-                }
+                { "text": "Identify all allergens in this food image." }
             ]
         }],
         "generationConfig": {
@@ -145,7 +141,6 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
         .await
         .map_err(|e| Error::from(e.to_string()))?;
 
-    // Gemini 응답 파싱
     let raw_text = gemini_res
         .pointer("/candidates/0/content/parts/0/text")
         .and_then(|v| v.as_str())
@@ -154,17 +149,14 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
     let parsed_result: Value = serde_json::from_str(raw_text).unwrap_or(json!({"allergens": []}));
     let allergens = parsed_result.get("allergens").cloned().unwrap_or(json!([]));
 
-    // 캐시 저장 (실패해도 무시)
+    // 캐시 저장 (실패 무시)
     let _ = http
         .post(format!("{}/rest/v1/gemini_cache", supabase_url))
         .header("apikey", &supabase_key)
         .header("Authorization", format!("Bearer {}", supabase_key))
         .header("Content-Type", "application/json")
         .header("Prefer", "return=minimal")
-        .json(&json!({
-            "image_hash": image_hash,
-            "result": allergens
-        }))
+        .json(&json!({ "image_hash": image_hash, "result": allergens }))
         .send()
         .await;
 

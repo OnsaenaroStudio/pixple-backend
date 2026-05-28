@@ -1,11 +1,11 @@
 use reqwest::Client;
 use serde::Deserialize;
-use serde_json::{Value, json};
-use vercel_runtime::{Body, Error, Request, Response, StatusCode, run, service_fn};
+use serde_json::{json, Value};
+use vercel_runtime::{run, Body, Error, Request, Response, StatusCode};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    run(service_fn(handler)).await
+    run(handler).await
 }
 
 #[derive(Deserialize)]
@@ -24,7 +24,7 @@ fn error_response(msg: &str) -> Result<Response<Body>, Error> {
         .body(Body::Text(body.to_string()))?)
 }
 
-async fn handler(req: Request) -> Result<Response<Body>, Error> {
+pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
     let body_str = match req.body() {
         Body::Text(s) => s.clone(),
         Body::Binary(b) => String::from_utf8_lossy(b).to_string(),
@@ -66,13 +66,7 @@ async fn handler(req: Request) -> Result<Response<Body>, Error> {
         .await
         .unwrap_or(json!([]));
 
-    let comment_id = insert_res
-        .as_array()
-        .and_then(|a| a.first())
-        .and_then(|v| v.get("id"))
-        .and_then(|v| v.as_i64());
-
-    match comment_id {
+    match insert_res.as_array().and_then(|a| a.first()).and_then(|v| v.get("id")).and_then(|v| v.as_i64()) {
         Some(id) => {
             let resp = json!({ "is_suc": true, "comment_id": id });
             Ok(Response::builder()
