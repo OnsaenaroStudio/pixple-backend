@@ -28,6 +28,15 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState("");
   const [authError, setAuthError] = useState("");
 
+  const cleanEnvVar = (val: string): string => {
+    if (!val) return "";
+    let clean = val.trim();
+    if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+      clean = clean.substring(1, clean.length - 1);
+    }
+    return clean.trim();
+  };
+
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordInput === "PIxpleADMIN") {
