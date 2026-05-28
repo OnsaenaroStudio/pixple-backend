@@ -27,27 +27,6 @@ export default function App() {
   });
   const [passwordInput, setPasswordInput] = useState("");
   const [authError, setAuthError] = useState("");
-  const [configStatus, setConfigStatus] = useState<{
-    supabaseConfigured: boolean;
-    supabaseUrl: string | null;
-    apiKeyConfigured: boolean;
-    maskedKeyPreview: string | null;
-    dbReachable: boolean;
-  }>({
-    supabaseConfigured: false,
-    supabaseUrl: null,
-    apiKeyConfigured: false,
-    maskedKeyPreview: null,
-    dbReachable: false,
-  });
-
-  const refreshConfigStatus = () => {
-    fetch("/api/db-st", { cache: "no-store" })
-      .then(r => r.json())
-      .then(setConfigStatus)
-      .catch(err => console.error("Error reading db-status API:", err));
-  };
-
 
   const cleanEnvVar = (val: string): string => {
     if (!val) return "";
