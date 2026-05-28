@@ -8,6 +8,8 @@ let geminiClient: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI {
   if (!geminiClient) {
     const key = process.env.GEMINI_API_KEY;
+
+    console.log(key);
     if (!key || key === "MY_GEMINI_API_KEY") {
       throw new Error("GEMINI_API_KEY is not configured in your environment variables.");
     }
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
     });
 
     const text = response.text || "{}";
-    
+
     // Clean code block ticks of json response
     let cleanJson = text.trim();
     if (cleanJson.startsWith("```json")) {

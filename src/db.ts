@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient,SupabaseClient  } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 import { Article, Comment } from "./types";
 import dotenv from "dotenv";
 
@@ -19,9 +20,12 @@ const cleanEnvVar = (val: string): string => {
 const supabaseUrl = cleanEnvVar(process.env.SUPABASE_URL || "");
 const supabaseKey = cleanEnvVar(process.env.SUPABASE_KEY || "");
 
+console.log(supabaseUrl);
+console.log(supabaseKey);
+
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseKey && supabaseUrl !== "MY_SUPABASE_URL" && supabaseUrl !== "");
 
-export let supabase: any = null;
+export let supabase: SupabaseClient<Database> | null = null;
 
 if (isSupabaseConfigured) {
   try {
