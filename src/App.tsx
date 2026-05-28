@@ -27,6 +27,27 @@ export default function App() {
   });
   const [passwordInput, setPasswordInput] = useState("");
   const [authError, setAuthError] = useState("");
+  const [configStatus, setConfigStatus] = useState<{
+    supabaseConfigured: boolean;
+    supabaseUrl: string | null;
+    apiKeyConfigured: boolean;
+    maskedKeyPreview: string | null;
+    dbReachable: boolean;
+  }>({
+    supabaseConfigured: false,
+    supabaseUrl: null,
+    apiKeyConfigured: false,
+    maskedKeyPreview: null,
+    dbReachable: false,
+  });
+
+  const refreshConfigStatus = () => {
+    fetch("/api/db-st", { cache: "no-store" })
+      .then(r => r.json())
+      .then(setConfigStatus)
+      .catch(err => console.error("Error reading db-status API:", err));
+  };
+
 
   const cleanEnvVar = (val: string): string => {
     if (!val) return "";
@@ -487,40 +508,36 @@ alter table gemini_cache disable row level security;
           </p>
           <div className="space-y-2 text-xs">
             <div className="flex items-center space-x-2">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  configStatus.supabaseConfigured ? "bg-[#10B981]" : "bg-amber-400"
-                }`}
-              ></div>
+              <div className={`w-2 h-2 rounded-full ${
+                configStatus.supabaseConfigured ? "bg-[#10B981]" : "bg-amber-400"
+              }`} />
               <span className="font-semibold text-[#374151]">
                 {configStatus.supabaseConfigured ? "Supabase Connected" : "Local Sandbox Pool"}
               </span>
             </div>
 
             <div className="flex items-center space-x-2">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  configStatus.apiKeyConfigured ? "bg-[#10B981]" : "bg-red-400"
-                }`}
-              ></div>
+              <div className={`w-2 h-2 rounded-full ${
+                configStatus.apiKeyConfigured ? "bg-[#10B981]" : "bg-red-400"
+              }`} />
               <span className="font-semibold text-[#374151]">
                 {configStatus.apiKeyConfigured ? "Gemini Service Online" : "Gemini API Key Missing"}
               </span>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  configStatus.apiKeyConfigured ? "bg-[#10B981]" : "bg-red-400"
-                }`}
-              ></div>
-              <span className="font-semibold text-[#374151]">
-                SUPABASE URL: ${cleanEnvVar(process.env.SUPABASE_URL || "")}
-                SUPABASE KEY: ${cleanEnvVar(process.env.SUPABASE_KEY || "")}
-              </span>
+            <div className="pt-2 mt-1 border-t border-[#E5E7EB] space-y-1 font-mono text-[10px] text-[#4B5563] break-all">
+              <div>
+                <span className="text-[#9CA3AF]">URL:</span>{" "}
+                {configStatus.supabaseUrl ?? <span className="text-red-500">not set</span>}
+              </div>
+              <div>
+                <span className="text-[#9CA3AF]">KEY:</span>{" "}
+                {configStatus.maskedKeyPreview ?? <span className="text-red-500">not set</span>}
+              </div>
             </div>
           </div>
         </div>
+
       </aside>
 
       {/* Main Content Area */}
