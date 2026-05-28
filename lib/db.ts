@@ -23,7 +23,7 @@ export const isSupabaseConfigured = !!(supabaseUrl && supabaseKey && supabaseUrl
 
 export let supabase: SupabaseClient<Database> | null = null;
 
-if (isSupabaseConfigured && supabase) {
+if (isSupabaseConfigured) {
   try {
     supabase = createClient<Database>(supabaseUrl, supabaseKey);
     console.log("Successfully initialized Supabase with URL:", supabaseUrl);
@@ -140,7 +140,7 @@ export const sandboxDb = new SandboxDatabase();
 
 // Centralized database fetch helper supporting either real Supabase or Sandbox Mode
 export async function dbGetArticles(page: number): Promise<{ page: number; articles: Article[] }> {
-  if (isSupabaseConfigured) {
+  if (isSupabaseConfigured && supabase) {
     try {
       const limit = 10;
       const start = (page - 1) * limit;
