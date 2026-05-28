@@ -1,3 +1,11 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export interface Database {
   public: {
     Tables: {
@@ -6,25 +14,23 @@ export interface Database {
           id: number;
           article_title: string;
           article_content: string;
-          article_hash_tag: string[];
+          article_hash_tag: Json;
           created_at: string;
         };
 
         Insert: {
-          id?: never;
           article_title: string;
           article_content: string;
-          article_hash_tag?: string[];
-          created_at?: string;
+          article_hash_tag?: Json;
         };
 
         Update: {
-          id?: never;
           article_title?: string;
           article_content?: string;
-          article_hash_tag?: string[];
-          created_at?: string;
+          article_hash_tag?: Json;
         };
+
+        Relationships: [];
       };
 
       comments: {
@@ -39,62 +45,52 @@ export interface Database {
         };
 
         Insert: {
-          id?: never;
           article_id: number;
           user_name: string;
           user_id: string;
           content: string;
           likes?: number;
-          created_at?: string;
         };
 
         Update: {
-          id?: never;
           article_id?: number;
           user_name?: string;
           user_id?: string;
           content?: string;
           likes?: number;
-          created_at?: string;
         };
+
+        Relationships: [];
       };
 
       gemini_cache: {
         Row: {
           id: number;
           image_hash: string;
-          result: {
-            allergens: number[];
-          };
+          result: Json;
           created_at: string;
         };
 
         Insert: {
-          id?: never;
           image_hash: string;
-          result: {
-            allergens: number[];
-          };
-          created_at?: string;
+          result: Json;
         };
 
         Update: {
-          id?: never;
           image_hash?: string;
-          result?: {
-            allergens: number[];
-          };
-          created_at?: string;
+          result?: Json;
         };
+
+        Relationships: [];
       };
     };
 
-    Views: Record<string, never>;
+    Views: {};
 
-    Functions: Record<string, never>;
+    Functions: {};
 
-    Enums: Record<string, never>;
+    Enums: {};
 
-    CompositeTypes: Record<string, never>;
+    CompositeTypes: {};
   };
 }

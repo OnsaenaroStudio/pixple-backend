@@ -23,7 +23,7 @@ export const isSupabaseConfigured = !!(supabaseUrl && supabaseKey && supabaseUrl
 
 export let supabase: SupabaseClient<Database> | null = null;
 
-if (isSupabaseConfigured) {
+if (isSupabaseConfigured && supabase) {
   try {
     supabase = createClient<Database>(supabaseUrl, supabaseKey);
     console.log("Successfully initialized Supabase with URL:", supabaseUrl);
