@@ -25,7 +25,7 @@ export let supabase: SupabaseClient<Database> | null = null;
 
 if (isSupabaseConfigured) {
   try {
-    supabase = createClient(supabaseUrl, supabaseKey);
+    supabase = createClient<Database>(supabaseUrl, supabaseKey);
     console.log("Successfully initialized Supabase with URL:", supabaseUrl);
   } catch (err) {
     console.error("Failed to initialize Supabase client:", err);
