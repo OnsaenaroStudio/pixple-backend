@@ -1,0 +1,8 @@
+{
+  "name": "Pixple Allergen Detector",
+  "description": "Korean mandatory food allergen detection using Gemini AI and a community board for sharing food allergen discussions.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
