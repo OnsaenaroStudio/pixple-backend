@@ -1,19 +1,19 @@
 {
   "functions": {
     "api/gemini-api.rs": {
-      "runtime": "vercel-rust@5"
+      "runtime": "vercel-rust@4.0.9"
     },
     "api/community-write.rs": {
-      "runtime": "vercel-rust@5"
+      "runtime": "vercel-rust@4.0.9"
     },
     "api/community.rs": {
-      "runtime": "vercel-rust@5"
+      "runtime": "vercel-rust@4.0.9"
     },
     "api/community-comment.rs": {
-      "runtime": "vercel-rust@5"
+      "runtime": "vercel-rust@4.0.9"
     },
     "api/community-comment-write.rs": {
-      "runtime": "vercel-rust@5"
+      "runtime": "vercel-rust@4.0.9"
     }
   },
   "rewrites": [
