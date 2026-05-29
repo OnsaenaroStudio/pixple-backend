@@ -33,12 +33,12 @@ export default function Home() {
 
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === "PIxpleADMIN") {
+    if (passwordInput === "admin") {
       window.sessionStorage.setItem("pixple_api_auth", "true");
       setIsAuthenticated(true);
       setAuthError("");
     } else {
-      setAuthError("올바르지 않은 비밀번호입니다. (Hint: PIxpleADMIN)");
+      setAuthError("올바르지 않은 비밀번호입니다.");
     }
   };
 
@@ -98,7 +98,7 @@ export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [articlesPage] = useState(1);
   const [articlesLoading, setArticlesLoading] = useState(false);
-  
+
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -190,7 +190,7 @@ export default function Home() {
           prompt: customPrompt
         })
       });
-      
+
       setImageEndpointStatus(res.status);
       const data = await res.json();
       setPayloadImageResponse(JSON.stringify(data, null, 2));
@@ -396,13 +396,13 @@ alter table gemini_cache disable row level security;
 
   return (
     <div className="flex w-full min-h-screen bg-[#F8F9FA] text-[#1F2937] font-sans">
-      
+
       {/* Hidden standard square canvas for drawing predefined mock foods */}
       <canvas ref={canvasRef} width={300} height={300} className="hidden" />
 
       {/* Navigation Sidebar */}
       <aside className="w-64 bg-white border-r border-[#E5E7EB] flex flex-col p-6 shrink-0">
-        
+
         {/* Brand Block */}
         <div className="flex items-center space-x-3 mb-10">
           <div className="w-8 h-8 bg-[#3B82F6] rounded-lg flex items-center justify-center shrink-0 shadow-xs">
@@ -510,7 +510,7 @@ alter table gemini_cache disable row level security;
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0">
-        
+
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-[#E5E7EB] flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-1.5">

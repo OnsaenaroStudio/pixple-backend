@@ -126,7 +126,7 @@ export const getEndpointsData = (origin: string) => [
     responseExample: JSON.stringify({
       code: 200,
       data: {
-        allergens: [1, 6, 9, 18]
+        allergens: ["아몬드", "우유", "카페인"]
       },
       cached: false
     }, null, 2),
