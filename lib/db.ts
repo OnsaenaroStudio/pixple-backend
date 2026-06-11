@@ -97,6 +97,24 @@ class SandboxDatabase {
     return newId;
   }
 
+  async deleteArticle(articleId: number): Promise<boolean> {
+    const before = this.articles.length;
+    this.articles = this.articles.filter(a => a.id !== articleId);
+
+    if (this.articles.length === before) {
+      return false;
+    }
+    this.comments = this.comments.filter(c => c.article_id !== articleId);
+    return true;
+  }
+
+  async deleteComment(commentId: number): Promise<boolean> {
+    const before = this.comments.length;
+    this.comments = this.comments.filter(c => c.id !== commentId);
+    return this.comments.length < before;
+  }
+
+
   async getComments(articleId: number): Promise<Comment[]> {
     return this.comments
       .filter(c => c.article_id === articleId)
@@ -194,6 +212,52 @@ export async function dbCreateArticle(title: string, content: string, hashtags: 
     }
   }
   return sandboxDb.createArticle(title, content, hashtags);
+}
+
+export async function dbDeleteArticle(articleId: number): Promise<boolean> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error: commentErr } = await supabase
+        .from("comments")
+        .delete()
+        .eq("article_id", articleId);
+
+      if (commentErr) throw commentErr;
+
+      const { error: articleErr, count } = await supabase
+        .from("articles")
+        .delete({ count: "exact" })
+        .eq("id", articleId);
+
+      if (articleErr) throw articleErr;
+
+      return (count ?? 0) > 0;
+    } catch (err: any) {
+      console.error("Supabase Error (dbDeleteArticle):", err.message);
+      throw new Error(`Supabase Delete Failed for 'articles': ${err.message}.`);
+    }
+  }
+
+  return sandboxDb.deleteArticle(articleId);
+}
+
+export async function dbDeleteComment(commentId: number): Promise<boolean> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error, count } = await supabase
+        .from("comments")
+        .delete({ count: "exact" })
+        .eq("id", commentId);
+
+      if (error) throw error;
+      return (count ?? 0) > 0;
+    } catch (err: any) {
+      console.error("Supabase Error (dbDeleteComment):", err.message);
+      throw new Error(`Supabase Delete Failed for 'comments': ${err.message}.`);
+    }
+  }
+
+  return sandboxDb.deleteComment(commentId);
 }
 
 export async function dbGetComments(articleId: number): Promise<Comment[]> {
