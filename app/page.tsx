@@ -13,7 +13,6 @@ import { FOOD_PRESETS, getEndpointsData } from "@/lib/constants";
 import type { Article, Comment } from "@/lib/types";
 
 // Import custom sub-components
-import Gatekeeper from "@/components/app/Gatekeeper";
 import DashboardView from "@/components/app/DashboardView";
 import AnalysisApiView from "@/components/app/AnalysisApiView";
 import CommunityApiView from "@/components/app/CommunityApiView";
@@ -24,10 +23,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"dashboard" | "analysis_api" | "community_api" | "settings" | "api_docs">("dashboard");
 
   // Authentication gate state
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.sessionStorage.getItem("pixple_api_auth") === "true";
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [passwordInput, setPasswordInput] = useState("");
   const [authError, setAuthError] = useState("");
 
@@ -252,6 +248,17 @@ Use these Korean allergen names:
     loadDashboardArticles();
   }, [loadDashboardArticles]);
 
+  // Automatic polling mechanism for refreshing community articles list every 30 seconds when on the 'Community Forum API' tab
+  useEffect(() => {
+    if (activeTab !== "community_api") return;
+
+    const interval = setInterval(() => {
+      loadDashboardArticles();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [activeTab, loadDashboardArticles]);
+
   // Pre-generate food preset canvas on load/select
   useEffect(() => {
     if (selectedPreset) {
@@ -312,7 +319,7 @@ Use these Korean allergen names:
 
   // Submit Article API live demo
   const runCreatePostAPI = async (e: React.FormEvent) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!newPostTitle.trim() || !newPostContent.trim()) return;
 
     setPostSubmitting(true);
@@ -325,7 +332,8 @@ Use these Korean allergen names:
         body: JSON.stringify({
           article_title: newPostTitle,
           article_content: newPostContent,
-          article_hash_tag: parsedTags
+          article_hash_tag: parsedTags,
+          user_id: sessionUser.id
         })
       });
 
@@ -343,6 +351,33 @@ Use these Korean allergen names:
       alert("Error: " + error.message);
     } finally {
       setPostSubmitting(false);
+    }
+  };
+
+  const runDeleteArticleAPI = async (articleId: number) => {
+    if (!confirm("Are you sure you want to delete this article?")) return;
+
+    try {
+      const res = await fetch("/api/community/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          article_id: articleId,
+          user_id: sessionUser.id
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("Deleted successfully!");
+        setActiveArticle(null);
+        await loadDashboardArticles();
+      } else {
+        alert("Failed to delete: " + (data.message || "You may not be the owner of this post."));
+      }
+    } catch (e) {
+      const error = e as Error;
+      alert("Error: " + error.message);
     }
   };
 
@@ -442,6 +477,7 @@ Use these Korean allergen names:
     article_title text not null,
     article_content text not null,
     article_hash_tag jsonb not null default '[]'::jsonb,
+    user_id text not null default '',
     created_at timestamptz not null default now()
 );
 
@@ -480,18 +516,6 @@ alter table gemini_cache disable row level security;
 -- create policy "Allow public access" on comments for all to public using (true) with check (true);
 -- alter table gemini_cache enable row level security;
 -- create policy "Allow public access" on gemini_cache for all to public using (true) with check (true);`;
-
-  if (!isAuthenticated) {
-    return (
-      <Gatekeeper
-        passwordInput={passwordInput}
-        setPasswordInput={setPasswordInput}
-        authError={authError}
-        setAuthError={setAuthError}
-        handleAuthSubmit={handleAuthSubmit}
-      />
-    );
-  }
 
   return (
     <div className="flex w-full min-h-screen bg-[#F8F9FA] text-[#1F2937] font-sans">
@@ -693,6 +717,7 @@ alter table gemini_cache disable row level security;
               setNewCommentText={setNewCommentText}
               commentSubmitting={commentSubmitting}
               runCreateCommentAPI={runCreateCommentAPI}
+              runDeleteArticleAPI={runDeleteArticleAPI}
             />
           )}
 

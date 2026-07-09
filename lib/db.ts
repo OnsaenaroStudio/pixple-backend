@@ -40,14 +40,16 @@ class SandboxDatabase {
       article_title: "[공지] 한국 식품 알레르기 필수 표시 대상 정보 안내 및 팁",
       article_content: "안녕하세요! Pixple Allergen Detector에 오신 것을 환영합니다.\n\n한국 식품의약품안전처 고시 기준에 따른 한국 의무 표시 대상 알레르기 유래 물질은 총 19종(기타 파생군 포함 20종)입니다.\n식품 분석 시 소스, 분말 등 보이지 않는 알레르기 유입 가능성이 높으므로 음식을 촬영하거나 성분 정보를 검색할 때 확인해 보세요!\n\n이 게시판은 Supabase 또는 로컬 샌드박스로 운영되며 누구나 글과 댓글을 남기실 수 있습니다.",
       article_hash_tag: ["공지", "알레르기정보", "시작하기"],
-      created_at: new Date(Date.now() - 3600000 * 24).toISOString() // 1 day ago
+      created_at: new Date(Date.now() - 3600000 * 24).toISOString(), // 1 day ago
+      user_id: "system"
     },
     {
       id: 2,
       article_title: "된장찌개 속 알레르기 유발 유입 우려 물질",
       article_content: "된장찌개에는 대두(5번)와 밀(6번) 성분이 국물이나 메주 가공 과정에서 필수적으로 들어가게 됩니다.\n여기에 들어가는 조개(18번)류나 육수용 고기류(16번 쇠고기, 15번 닭고기) 알레르기가 있으신 분들은 식당 등에서 양념 베이스를 꼭 질문해보는 것이 현명합니다.",
       article_hash_tag: ["된장찌개", "한식", "생활꿀팁"],
-      created_at: new Date(Date.now() - 3600000 * 5).toISOString() // 5 hours ago
+      created_at: new Date(Date.now() - 3600000 * 5).toISOString(), // 5 hours ago
+      user_id: "system"
     }
   ];
 
@@ -84,22 +86,23 @@ class SandboxDatabase {
     };
   }
 
-  async createArticle(title: string, content: string, hashtags: string[]): Promise<number> {
+  async createArticle(title: string, content: string, hashtags: string[], userId: string): Promise<number> {
     const newId = this.articles.length > 0 ? Math.max(...this.articles.map(a => a.id)) + 1 : 1;
     const newArticle: Article = {
       id: newId,
       article_title: title,
       article_content: content,
       article_hash_tag: hashtags,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      user_id: userId
     };
     this.articles.push(newArticle);
     return newId;
   }
 
-  async deleteArticle(articleId: number): Promise<boolean> {
+  async deleteArticle(articleId: number, userId: string): Promise<boolean> {
     const before = this.articles.length;
-    this.articles = this.articles.filter(a => a.id !== articleId);
+    this.articles = this.articles.filter(a => !(a.id === articleId && a.user_id === userId));
 
     if (this.articles.length === before) {
       return false;
@@ -191,7 +194,7 @@ export async function dbGetArticles(page: number): Promise<{ page: number; artic
   return sandboxDb.getArticles(page);
 }
 
-export async function dbCreateArticle(title: string, content: string, hashtags: string[]): Promise<number | null> {
+export async function dbCreateArticle(title: string, content: string, hashtags: string[], userId: string): Promise<number | null> {
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase
@@ -199,7 +202,8 @@ export async function dbCreateArticle(title: string, content: string, hashtags: 
         .insert([{
           article_title: title,
           article_content: content,
-          article_hash_tag: hashtags
+          article_hash_tag: hashtags,
+          user_id: userId
         }])
         .select("id")
         .single();
@@ -211,34 +215,29 @@ export async function dbCreateArticle(title: string, content: string, hashtags: 
       throw new Error(`Supabase Insert Failed for 'articles': ${err.message}. Please check if the tables are created in Supabase SQL editor using the Schema blueprints!`);
     }
   }
-  return sandboxDb.createArticle(title, content, hashtags);
+  return sandboxDb.createArticle(title, content, hashtags, userId);
 }
 
-export async function dbDeleteArticle(articleId: number): Promise<boolean> {
+export async function dbDeleteArticle(articleId: number, userId: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {
-      const { error: commentErr } = await supabase
-        .from("comments")
-        .delete()
-        .eq("article_id", articleId);
-
-      if (commentErr) throw commentErr;
-
-      const { error: articleErr, count } = await supabase
+      const { data, error } = await supabase
         .from("articles")
-        .delete({ count: "exact" })
-        .eq("id", articleId);
+        .delete()
+        .eq("id", articleId)
+        .eq("user_id", userId)
+        .select();
 
-      if (articleErr) throw articleErr;
+      if (error) throw error;
 
-      return (count ?? 0) > 0;
+      return (data && data.length > 0);
     } catch (err: any) {
       console.error("Supabase Error (dbDeleteArticle):", err.message);
       throw new Error(`Supabase Delete Failed for 'articles': ${err.message}.`);
     }
   }
 
-  return sandboxDb.deleteArticle(articleId);
+  return sandboxDb.deleteArticle(articleId, userId);
 }
 
 export async function dbDeleteComment(commentId: number): Promise<boolean> {

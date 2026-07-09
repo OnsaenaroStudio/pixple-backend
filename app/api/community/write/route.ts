@@ -3,7 +3,11 @@ import { dbCreateArticle } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
-    const { article_title, article_content, article_hash_tag } = await request.json();
+    const { article_title, article_content, article_hash_tag, user_id } = await request.json();
+
+    if (!user_id || typeof user_id !== 'string' || user_id.trim() === '') {
+      return NextResponse.json({ is_suc: false, error: "user_id is required." }, { status: 400 });
+    }
 
     if (!article_title || !article_content) {
       return NextResponse.json({ is_suc: false, error: "Title and content are required." }, { status: 400 });
@@ -21,7 +25,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const newId = await dbCreateArticle(article_title, article_content, hashtags);
+    const newId = await dbCreateArticle(article_title, article_content, hashtags, user_id);
 
     return NextResponse.json({
       is_suc: true,

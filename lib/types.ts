@@ -35,6 +35,7 @@ export interface Article {
   article_content: string;
   article_hash_tag: string[];
   created_at: string;
+  user_id?: string;
 }
 
 export interface Comment {

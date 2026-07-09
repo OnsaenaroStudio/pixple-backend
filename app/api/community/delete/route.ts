@@ -5,10 +5,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const articleIdRaw = body?.article_id;
+    const userId = body?.user_id;
 
     if (articleIdRaw === undefined || articleIdRaw === null) {
       return NextResponse.json(
         { success: false, message: "article_id is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      return NextResponse.json(
+        { success: false, message: "user_id is required" },
         { status: 400 }
       );
     }
@@ -21,7 +29,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const ok = await dbDeleteArticle(articleId);
+    const ok = await dbDeleteArticle(articleId, userId);
 
     return NextResponse.json(
       { success: ok },

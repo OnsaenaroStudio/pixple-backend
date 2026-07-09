@@ -16,18 +16,21 @@ export interface Database {
           article_content: string;
           article_hash_tag: Json;
           created_at: string;
+          user_id: string;
         };
 
         Insert: {
           article_title: string;
           article_content: string;
           article_hash_tag?: Json;
+          user_id?: string;
         };
 
         Update: {
           article_title?: string;
           article_content?: string;
           article_hash_tag?: Json;
+          user_id?: string;
         };
 
         Relationships: [];
